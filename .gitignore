@@ -1,17 +1,22 @@
-/Dailygrains.xlsx
-/Grainpr.xlsx
-/model_thesis.ipynb
-/creds.py
-/main1.py
-/.idea
-/BarchartFutures/Combined data/
-/BarchartFutures/Combined data/combined_Dec.csv
-/BarchartFutures/Combined data/combined_July.csv
-/BarchartFutures/Combined data/combined_Mar.csv
-/BarchartFutures/Combined data/combined_May.csv
-/BarchartFutures/Combined data/combined_Sept.csv
-/BarchartFutures/Dec/
-/BarchartFutures/July/
-/BarchartFutures/Mar/
-/BarchartFutures/May/
-/BarchartFutures/Sept/
+# Archive of original exploration files
+z-archive/
+
+# Credentials
+creds.py
+
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Backend
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/services/__pycache__/
+backend/app/routes/__pycache__/

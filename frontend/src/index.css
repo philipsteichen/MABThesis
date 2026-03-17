@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply text-slate-800 font-sans antialiased;
+  margin: 0;
+  background-color: #f5f2ed;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #B9AB97;
+  border-radius: 9999px;
+}
+
+/* K-State purple accent on focus */
+input:focus,
+select:focus {
+  --tw-ring-color: rgba(81, 40, 136, 0.3);
+}
