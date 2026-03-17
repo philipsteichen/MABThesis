@@ -143,6 +143,9 @@ export default function Dashboard() {
       setBasisData(data.data);
       setSeasonal(sea.data);
       setLoading(false);
+    }).catch((err) => {
+      console.error("Dashboard load error:", err);
+      setLoading(false);
     });
   }, []);
 
