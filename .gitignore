@@ -25,9 +25,6 @@ backend/.venv/
 # Claude Code
 .claude/
 
-# Local analytics dashboard (not deployed)
-analytics.html
-
 # Data files (symlinks to z-archive)
 BarchartFutures
 Parcell_GrainPrices_August-2024.xlsx

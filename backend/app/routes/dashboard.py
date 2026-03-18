@@ -6,9 +6,11 @@ Protected by a simple API key (env var ANALYTICS_KEY).
 CORS is open on this route so the standalone analytics.html can call it.
 """
 
+import json
 import os
 import re
 import subprocess
+import urllib.request
 from collections import Counter
 from typing import Optional
 
@@ -103,6 +105,62 @@ async def stats_preflight(request: Request):
     )
 
 
+@router.options("/geoip")
+async def geoip_preflight(request: Request):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        content="",
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
+
+@router.post("/geoip")
+async def geoip_lookup(request: Request):
+    """Proxy IP geolocation via ip-api.com (HTTP, server-side only).
+
+    Accepts JSON: { "key": "...", "ips": ["1.2.3.4", ...] }
+    Returns:      { "1.2.3.4": { "country": ..., "region": ..., "city": ..., "isp": ... }, ... }
+    """
+    body = await request.json()
+    _check_key(body.get("key"))
+    ips = body.get("ips", [])[:100]  # cap at 100
+
+    if not ips:
+        return _cors_response({}, request)
+
+    # ip-api.com batch: POST JSON array, returns array of results
+    payload = json.dumps(
+        [{"query": ip, "fields": "query,country,regionName,city,isp,status"} for ip in ips]
+    ).encode()
+    try:
+        req = urllib.request.Request(
+            "http://ip-api.com/batch",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception:
+        return _cors_response({}, request)
+
+    result = {}
+    for entry in data:
+        ip = entry.get("query", "")
+        if entry.get("status") == "success":
+            result[ip] = {
+                "country": entry.get("country", ""),
+                "region": entry.get("regionName", ""),
+                "city": entry.get("city", ""),
+                "isp": entry.get("isp", ""),
+            }
+    return _cors_response(result, request)
+
+
 @router.get("/stats")
 async def get_stats(
     request: Request,
@@ -163,6 +221,7 @@ async def get_stats(
         ip_ua[ip] = e["ua"]
 
     recent_visitors = sorted(ip_last_seen.items(), key=lambda x: x[1], reverse=True)
+
     recent_visitors_out = [
         {
             "ip": ip,

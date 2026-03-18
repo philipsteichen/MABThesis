@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAB Thesis – Site Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --purple: #512888;
+    --purple-light: #6B4C9A;
+    --wheat: #CEA152;
+    --wheat-light: #E8C97A;
+    --bg: #f8f7f4;
+    --card: #fff;
+    --border: #e5e2dc;
+    --text: #1e1e2e;
+    --muted: #6b7280;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); }
+
+  /* Login */
+  .login-wrap { display:flex; align-items:center; justify-content:center; height:100vh; }
+  .login-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:2.5rem; width:360px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .login-box h1 { color:var(--purple); font-size:1.4rem; margin-bottom:.25rem; }
+  .login-box p { color:var(--muted); font-size:.85rem; margin-bottom:1.5rem; }
+  .login-box input { width:100%; padding:.65rem .85rem; border:1px solid var(--border); border-radius:8px; font-size:.9rem; outline:none; }
+  .login-box input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(81,40,136,.12); }
+  .login-box button { width:100%; margin-top:.75rem; padding:.65rem; background:var(--purple); color:#fff; border:none; border-radius:8px; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .login-box button:hover { opacity:.9; }
+  .login-box .err { color:#dc2626; font-size:.82rem; margin-bottom:.75rem; }
+
+  /* Dashboard */
+  .dash { max-width:1200px; margin:0 auto; padding:2rem 1.5rem; }
+  .header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+  .header h1 { color:var(--purple); font-size:1.5rem; }
+  .header .sub { color:var(--muted); font-size:.85rem; }
+  .pills { display:flex; gap:.4rem; flex-wrap:wrap; }
+  .pill { padding:.35rem .75rem; border:none; border-radius:8px; font-size:.75rem; font-weight:600; cursor:pointer; background:#e5e7eb; color:#374151; }
+  .pill.active { background:var(--purple); color:#fff; }
+  .pill:hover:not(.active) { background:#d1d5db; }
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--purple); border-radius:50%; animation:spin .6s linear infinite; margin-left:.5rem; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Stat cards */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.25rem; }
+  .stat.accent { background:var(--purple); border-color:var(--purple); color:#fff; }
+  .stat .label { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; font-weight:600; color:var(--muted); }
+  .stat.accent .label { color:var(--wheat-light); }
+  .stat .val { font-size:1.6rem; font-weight:700; margin-top:.25rem; }
+  .stat .unit { font-size:.8rem; font-weight:400; color:var(--muted); margin-left:2px; }
+  .stat.accent .unit { color:var(--wheat-light); }
+
+  /* Cards */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-bottom:1.5rem; }
+  .card h3 { color:var(--purple); font-size:.95rem; font-weight:700; margin-bottom:1rem; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+  @media(max-width:800px) { .row { grid-template-columns:1fr; } }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th { text-align:left; padding:.5rem .75rem; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-bottom:1px solid var(--border); }
+  th.r { text-align:right; }
+  td { padding:.5rem .75rem; border-bottom:1px solid #f3f2ef; }
+  td.r { text-align:right; }
+  td.mono { font-family:'SF Mono',Menlo,monospace; font-size:.82rem; }
+  tr:hover td { background:#faf9f7; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:600; }
+  .badge-desktop { background:#f3f0fa; color:#512888; }
+  .badge-mobile { background:#eff6ff; color:#1d4ed8; }
+  .badge-bot { background:#fff7ed; color:#c2410c; }
+  .badge-script { background:#f0fdf4; color:#15803d; }
+  .badge-other { background:#f3f4f6; color:#4b5563; }
+
+  /* Status pills */
+  .status-row { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .status-pill { padding:.5rem 1rem; border-radius:8px; text-align:center; border:1px solid var(--border); }
+  .status-pill .code { font-size:1.1rem; font-weight:700; }
+  .status-pill .cnt { font-size:.72rem; color:var(--muted); }
+  .status-pill.ok { background:#f0fdf4; border-color:#bbf7d0; }
+  .status-pill.warn { background:#fff7ed; border-color:#fed7aa; }
+  .status-pill.err { background:#fef2f2; border-color:#fecaca; }
+
+  /* Country tags */
+  .tags { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .tag { padding:4px 12px; background:#f9fafb; border:1px solid var(--border); border-radius:999px; font-size:.82rem; }
+  .tag b { color:var(--purple); margin-left:4px; }
+
+  /* Chart containers */
+  .chart-wrap { position:relative; height:220px; }
+  .chart-wrap-tall { position:relative; min-height:260px; }
+
+  .empty { text-align:center; padding:3rem; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="login" class="login-wrap">
+  <div class="login-box">
+    <h1>Site Analytics</h1>
+    <p>thesis.northofprosper.com</p>
+    <div id="login-err" class="err" style="display:none"></div>
+    <input id="key-input" type="password" placeholder="Analytics key" autofocus>
+    <button id="login-btn" onclick="doLogin()">View Analytics</button>
+  </div>
+</div>
+
+<!-- Dashboard (hidden until auth) -->
+<div id="dash" class="dash" style="display:none">
+  <div class="header">
+    <div>
+      <h1>Site Analytics</h1>
+      <div class="sub">thesis.northofprosper.com</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div class="pills" id="pills"></div>
+      <span id="loading" style="display:none"><span class="spinner"></span></span>
+    </div>
+  </div>
+
+  <div class="stats" id="stat-cards"></div>
+
+  <div class="card">
+    <h3>Traffic Over Time</h3>
+    <div class="chart-wrap"><canvas id="trafficChart"></canvas></div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>Top Endpoints</h3>
+      <div class="chart-wrap-tall"><canvas id="endpointChart"></canvas></div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Client Types</h3>
+        <div style="height:180px"><canvas id="uaChart"></canvas></div>
+      </div>
+      <div class="card" id="countries-card" style="display:none">
+        <h3>Countries</h3>
+        <div class="tags" id="countries"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Recent Visitors</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>IP Address</th><th>Location</th><th>ISP</th><th>Type</th><th class="r">Requests</th><th class="r">Last Seen</th></tr></thead>
+        <tbody id="visitors-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="status-card" style="display:none">
+    <h3>Status Codes</h3>
+    <div class="status-row" id="statuses"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://thesis.northofprosper.com/api/dashboard/stats';
+const GEO_API = 'https://thesis.northofprosper.com/api/dashboard/geoip';
+const SINCE_OPTS = [
+  { label: 'Today', value: 'today' },
+  { label: '24h', value: '24 hours ago' },
+  { label: '3d', value: '3 days ago' },
+  { label: '7d', value: '7 days ago' },
+  { label: '30d', value: '30 days ago' },
+  { label: 'All', value: '2026-01-01' },
+];
+const PURPLE = '#512888';
+const WHEAT = '#CEA152';
+const COLORS = [PURPLE, WHEAT, '#6B4C9A', '#D4A843', '#8B6DB5', '#B9AB97'];
+
+let apiKey = localStorage.getItem('mab_analytics_key') || '';
+let currentSince = 'today';
+let trafficChart, endpointChart, uaChart;
+
+// -- Auth --
+if (apiKey) {
+  fetchStats(apiKey, currentSince);
+}
+
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+function doLogin() {
+  apiKey = document.getElementById('key-input').value.trim();
+  if (!apiKey) return;
+  fetchStats(apiKey, currentSince);
+}
+
+// -- Fetch --
+async function fetchStats(key, since) {
+  document.getElementById('loading').style.display = '';
+  document.getElementById('login-err').style.display = 'none';
+  try {
+    const url = `${API}?key=${encodeURIComponent(key)}&since=${encodeURIComponent(since)}`;
+    const res = await fetch(url);
+    if (res.status === 403) {
+      document.getElementById('login-err').textContent = 'Invalid API key';
+      document.getElementById('login-err').style.display = '';
+      document.getElementById('loading').style.display = 'none';
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    localStorage.setItem('mab_analytics_key', key);
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('dash').style.display = '';
+    render(data);
+  } catch (err) {
+    document.getElementById('login-err').textContent = err.message;
+    document.getElementById('login-err').style.display = '';
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+// -- Pills --
+function renderPills() {
+  const wrap = document.getElementById('pills');
+  wrap.innerHTML = '';
+  SINCE_OPTS.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (currentSince === opt.value ? ' active' : '');
+    btn.textContent = opt.label;
+    btn.onclick = () => { currentSince = opt.value; renderPills(); fetchStats(apiKey, currentSince); };
+    wrap.appendChild(btn);
+  });
+}
+renderPills();
+
+// -- Render --
+function render(d) {
+  // Stat cards
+  const errCount = d.status_codes.filter(s => s.status >= 400).reduce((a, s) => a + s.count, 0);
+  const cards = [
+    { label: 'Total Requests', val: d.total_requests.toLocaleString(), accent: true },
+    { label: 'Unique Visitors', val: d.unique_ips.toLocaleString() },
+    { label: 'Avg Response', val: d.avg_response_ms, unit: 'ms' },
+    { label: 'Countries', val: d.countries.length },
+    { label: 'Errors (4xx/5xx)', val: errCount, cls: errCount > 0 ? 'color:#dc2626' : '' },
+  ];
+  const statEl = document.getElementById('stat-cards');
+  statEl.innerHTML = cards.map((c, i) =>
+    `<div class="stat${c.accent ? ' accent' : ''}">
+      <div class="label">${c.label}</div>
+      <div class="val" ${c.cls ? `style="${c.cls}"` : ''}>${c.val}${c.unit ? `<span class="unit">${c.unit}</span>` : ''}</div>
+    </div>`
+  ).join('');
+
+  // Traffic chart
+  if (trafficChart) trafficChart.destroy();
+  const tCtx = document.getElementById('trafficChart').getContext('2d');
+  trafficChart = new Chart(tCtx, {
+    type: 'line',
+    data: {
+      labels: d.requests_by_hour.map(h => h.hour.slice(11) || h.hour.slice(5)),
+      datasets: [{
+        label: 'Requests',
+        data: d.requests_by_hour.map(h => h.count),
+        borderColor: PURPLE,
+        backgroundColor: PURPLE + '20',
+        fill: true,
+        tension: .3,
+        pointRadius: d.requests_by_hour.length < 30 ? 3 : 0,
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+
+  // Endpoint chart
+  if (endpointChart) endpointChart.destroy();
+  const eps = d.top_endpoints.slice(0, 10).reverse();
+  const eCtx = document.getElementById('endpointChart').getContext('2d');
+  // Dynamically size canvas
+  document.getElementById('endpointChart').parentElement.style.height = Math.max(200, eps.length * 30) + 'px';
+  endpointChart = new Chart(eCtx, {
+    type: 'bar',
+    data: {
+      labels: eps.map(e => e.endpoint),
+      datasets: [{ data: eps.map(e => e.count), backgroundColor: PURPLE, borderRadius: 4 }]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } }, y:{ ticks:{ font:{ size:11 } } } } }
+  });
+
+  // UA pie
+  if (uaChart) uaChart.destroy();
+  const uCtx = document.getElementById('uaChart').getContext('2d');
+  uaChart = new Chart(uCtx, {
+    type: 'doughnut',
+    data: {
+      labels: d.ua_breakdown.map(u => u.type),
+      datasets: [{ data: d.ua_breakdown.map(u => u.count), backgroundColor: COLORS }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+  });
+
+  // Countries
+  const cCard = document.getElementById('countries-card');
+  const cWrap = document.getElementById('countries');
+  if (d.countries.length) {
+    cCard.style.display = '';
+    cWrap.innerHTML = d.countries.map(c => `<span class="tag">${c.country}<b>${c.count}</b></span>`).join('');
+  } else {
+    cCard.style.display = 'none';
+  }
+
+  // Visitors table
+  const tbody = document.getElementById('visitors-body');
+  tbody.innerHTML = d.recent_visitors.map((v, i) => {
+    const bc = { Desktop:'badge-desktop', Mobile:'badge-mobile', Bot:'badge-bot', Script:'badge-script' }[v.ua_type] || 'badge-other';
+    return `<tr data-ip="${v.ip}">
+      <td class="mono">${v.ip}</td>
+      <td class="geo-loc" style="font-size:.82rem">...</td>
+      <td class="geo-isp" style="font-size:.82rem;color:var(--muted)">...</td>
+      <td><span class="badge ${bc}">${v.ua_type}</span></td>
+      <td class="r" style="font-weight:600">${v.requests}</td>
+      <td class="r" style="font-size:.78rem;color:var(--muted)">${v.last_seen}</td>
+    </tr>`;
+  }).join('');
+
+  // Enrich visitor IPs with geolocation (client-side)
+  enrichGeoData(d.recent_visitors.map(v => v.ip));
+
+  // Status codes
+  const sCard = document.getElementById('status-card');
+  const sWrap = document.getElementById('statuses');
+  if (d.status_codes.length) {
+    sCard.style.display = '';
+    sWrap.innerHTML = d.status_codes.map(s => {
+      const cls = s.status >= 500 ? 'err' : s.status >= 400 ? 'warn' : 'ok';
+      return `<div class="status-pill ${cls}"><div class="code">${s.status}</div><div class="cnt">${s.count} reqs</div></div>`;
+    }).join('');
+  } else {
+    sCard.style.display = 'none';
+  }
+}
+
+// -- IP Geolocation (via backend proxy to ip-api.com) --
+const geoCache = {};
+
+async function enrichGeoData(ips) {
+  var unique = [...new Set(ips)].filter(function(ip) { return ip && ip !== 'unknown'; });
+  if (!unique.length) return;
+
+  console.log('[geo] Looking up', unique.length, 'IPs via backend proxy');
+
+  try {
+    var res = await fetch(GEO_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: apiKey, ips: unique }),
+    });
+    if (!res.ok) {
+      console.warn('[geo] Backend returned', res.status);
+      return;
+    }
+    var data = await res.json();
+    console.log('[geo] Got results for', Object.keys(data).length, 'IPs');
+    Object.assign(geoCache, data);
+    applyGeoToTable();
+  } catch (err) {
+    console.warn('[geo] Lookup failed:', err);
+  }
+}
+
+function applyGeoToTable() {
+  var rows = document.querySelectorAll('#visitors-body tr[data-ip]');
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    var ip = row.getAttribute('data-ip');
+    var geo = geoCache[ip];
+    if (!geo) continue;
+    var locCell = row.querySelector('.geo-loc');
+    var ispCell = row.querySelector('.geo-isp');
+    var parts = [geo.city, geo.region, geo.country].filter(Boolean);
+    if (locCell) locCell.textContent = parts.length ? parts.join(', ') : '-';
+    if (ispCell) ispCell.textContent = geo.isp || '-';
+  }
+}
+</script>
+</body>
+</html>
