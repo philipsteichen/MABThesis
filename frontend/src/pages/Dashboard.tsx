@@ -12,6 +12,7 @@ import {
   Legend,
 } from "recharts";
 import { api } from "../api/client";
+import { trackPageView } from "../api/analytics";
 import type { BasisDataPoint, BasisSummary, SeasonalBasis } from "../types";
 
 const MONTH_LABELS = [
@@ -128,6 +129,8 @@ export default function Dashboard() {
   const [basisData, setBasisData] = useState<BasisDataPoint[]>([]);
   const [seasonal, setSeasonal] = useState<SeasonalBasis[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => { trackPageView("/"); }, []);
 
   useEffect(() => {
     Promise.all([

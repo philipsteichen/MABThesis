@@ -11,6 +11,7 @@ import {
   Brush,
 } from "recharts";
 import { api } from "../api/client";
+import { trackPageView } from "../api/analytics";
 import type { BasisDataPoint } from "../types";
 
 export default function BasisAnalysis() {
@@ -22,6 +23,8 @@ export default function BasisAnalysis() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showPrices, setShowPrices] = useState(false);
+
+  useEffect(() => { trackPageView("/analysis"); }, []);
 
   // Fetch filter options on mount
   useEffect(() => {

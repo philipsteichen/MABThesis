@@ -91,10 +91,24 @@ def fetch_barchart(symbol: str, start_date: str = "20000101") -> pd.DataFrame:
 
 
 def parse_uploaded_csv(content: bytes) -> pd.DataFrame:
-    """Parse an uploaded CSV file. Expects 'Date' and 'Price' columns."""
+    """Parse an uploaded CSV file. Expects 'Date' and 'Price' columns.
+
+    Security: only reads date and price columns as strings/numbers.
+    No formula evaluation, no code execution. Column count capped at 50
+    and row count at 100k to prevent resource exhaustion.
+    """
     import io
 
-    df = pd.read_csv(io.BytesIO(content))
+    MAX_ROWS = 100_000
+    MAX_COLS = 50
+
+    # Sniff first bytes – reject if it looks like a binary/zip/xlsx
+    if content[:4] in (b"PK\x03\x04", b"\x00\x00", b"\xd0\xcf\x11\xe0"):
+        raise ValueError("File does not appear to be a valid CSV (binary content detected)")
+
+    df = pd.read_csv(io.BytesIO(content), nrows=MAX_ROWS)
+    if len(df.columns) > MAX_COLS:
+        raise ValueError(f"CSV has too many columns ({len(df.columns)}). Maximum is {MAX_COLS}.")
 
     # Normalize column names (case-insensitive matching)
     col_map = {}

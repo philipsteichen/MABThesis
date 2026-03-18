@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from typing import Optional
 from prophet import Prophet
@@ -12,7 +14,11 @@ from app.services.market_data import (
     BARCHART_COMMODITIES,
 )
 
+logger = logging.getLogger("mab.market")
 router = APIRouter()
+
+# 5 MB upload limit
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
 @router.get("/sources")
@@ -56,12 +62,20 @@ async def upload_csv(file: UploadFile = File(...)):
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(400, "Please upload a CSV file")
 
-    content = await file.read()
+    # Read with size limit to prevent memory exhaustion
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(400, f"File too large. Maximum size is {MAX_UPLOAD_BYTES // (1024*1024)} MB.")
+
+    logger.info("CSV upload: filename=%s size=%d bytes", file.filename, len(content))
+
     try:
         df = parse_uploaded_csv(content)
     except ValueError as e:
+        logger.warning("CSV parse failed: filename=%s error=%s", file.filename, str(e))
         raise HTTPException(400, str(e))
 
+    logger.info("CSV parsed: filename=%s rows=%d", file.filename, len(df))
     records = df.to_dict(orient="records")
     return {"data": records, "count": len(records), "filename": file.filename}
 
@@ -77,10 +91,14 @@ async def forecast_price(
     """Run Prophet forecast on market data or uploaded CSV."""
     # Get the data
     if file and file.filename:
-        content = await file.read()
+        content = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(400, f"File too large. Maximum size is {MAX_UPLOAD_BYTES // (1024*1024)} MB.")
+        logger.info("Forecast upload: filename=%s size=%d bytes", file.filename, len(content))
         try:
             df = parse_uploaded_csv(content)
         except ValueError as e:
+            logger.warning("Forecast CSV parse failed: filename=%s error=%s", file.filename, str(e))
             raise HTTPException(400, str(e))
         label = file.filename
     elif source and commodity:

@@ -13,6 +13,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { api } from "../api/client";
+import { trackPageView } from "../api/analytics";
 import type { ForecastResponse } from "../types";
 
 function downsample<T>(arr: T[], maxPoints: number): T[] {
@@ -30,6 +31,8 @@ export default function BasisForecast() {
   const [years, setYears] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { trackPageView("/forecast"); }, []);
 
   useEffect(() => {
     api.getLocations().then((res) => setLocations(res.locations));

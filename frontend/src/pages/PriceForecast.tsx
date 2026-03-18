@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Upload } from "lucide-react";
 import { api } from "../api/client";
+import { trackPageView, trackUpload } from "../api/analytics";
 import type { PriceForecastResponse, PricePoint } from "../types";
 
 function downsample<T>(arr: T[], max: number): T[] {
@@ -36,6 +37,8 @@ export default function PriceForecast() {
   const [forecasting, setForecasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataLabel, setDataLabel] = useState("");
+
+  useEffect(() => { trackPageView("/price-forecast"); }, []);
 
   // Load available sources on mount
   useEffect(() => {
@@ -68,6 +71,7 @@ export default function PriceForecast() {
     try {
       if (sourceId === "upload") {
         if (!file) throw new Error("Please select a CSV file first");
+        trackUpload("/price-forecast", file.name);
         const res = await api.uploadCsv(file);
         setPriceData(res.data);
         setDataLabel(res.filename);
