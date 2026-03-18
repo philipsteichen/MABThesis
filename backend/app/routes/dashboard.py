@@ -105,36 +105,26 @@ async def stats_preflight(request: Request):
     )
 
 
-@router.options("/geoip")
-async def geoip_preflight(request: Request):
-    origin = request.headers.get("origin", "*")
-    return JSONResponse(
-        content="",
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        },
-    )
-
-
-@router.post("/geoip")
-async def geoip_lookup(request: Request):
+@router.get("/geoip")
+async def geoip_lookup(
+    request: Request,
+    key: str = Query(..., description="Analytics API key"),
+    ips: str = Query(..., description="Comma-separated list of IPs"),
+):
     """Proxy IP geolocation via ip-api.com (HTTP, server-side only).
 
-    Accepts JSON: { "key": "...", "ips": ["1.2.3.4", ...] }
-    Returns:      { "1.2.3.4": { "country": ..., "region": ..., "city": ..., "isp": ... }, ... }
+    GET /geoip?key=...&ips=1.2.3.4,5.6.7.8
+    Returns: { "1.2.3.4": { "country": ..., "region": ..., "city": ..., "isp": ... }, ... }
     """
-    body = await request.json()
-    _check_key(body.get("key"))
-    ips = body.get("ips", [])[:100]  # cap at 100
+    _check_key(key)
+    ip_list = [ip.strip() for ip in ips.split(",") if ip.strip()][:100]
 
-    if not ips:
+    if not ip_list:
         return _cors_response({}, request)
 
     # ip-api.com batch: POST JSON array, returns array of results
     payload = json.dumps(
-        [{"query": ip, "fields": "query,country,regionName,city,isp,status"} for ip in ips]
+        [{"query": ip, "fields": "query,country,regionName,city,isp,status"} for ip in ip_list]
     ).encode()
     try:
         req = urllib.request.Request(

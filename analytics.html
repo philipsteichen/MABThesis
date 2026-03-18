@@ -355,11 +355,8 @@ async function enrichGeoData(ips) {
   console.log('[geo] Looking up', unique.length, 'IPs via backend proxy');
 
   try {
-    var res = await fetch(GEO_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: apiKey, ips: unique }),
-    });
+    var url = GEO_API + '?key=' + encodeURIComponent(apiKey) + '&ips=' + encodeURIComponent(unique.join(','));
+    var res = await fetch(url);
     if (!res.ok) {
       console.warn('[geo] Backend returned', res.status);
       return;
