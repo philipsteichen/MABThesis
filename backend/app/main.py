@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import basis, forecast, market
 from app.routes import analytics
+from app.routes import dashboard
 from app.middleware import RequestLoggingMiddleware
 
 # ---------------------------------------------------------------------------
@@ -38,6 +39,7 @@ app.include_router(basis.router, prefix="/api/basis", tags=["basis"])
 app.include_router(forecast.router, prefix="/api/forecast", tags=["forecast"])
 app.include_router(market.router, prefix="/api/market", tags=["market"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 
 @app.get("/api/health")
