@@ -23,6 +23,7 @@ export default function BasisAnalysis() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showPrices, setShowPrices] = useState(false);
+  const [adjustRolls, setAdjustRolls] = useState(true);
 
   useEffect(() => { trackPageView("/analysis"); }, []);
 
@@ -40,12 +41,13 @@ export default function BasisAnalysis() {
         crop: "HRW",
         start_date: startDate || undefined,
         end_date: endDate || undefined,
+        adjust_rolls: String(adjustRolls),
       })
       .then((res) => {
         setData(res.data);
         setLoading(false);
       });
-  }, [location, startDate, endDate]);
+  }, [location, startDate, endDate, adjustRolls]);
 
   // Downsample for performance if needed
   const chartData = useMemo(() => {
@@ -110,6 +112,15 @@ export default function BasisAnalysis() {
             className="rounded"
           />
           Show Cash &amp; Futures
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-600 pb-1 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={adjustRolls}
+            onChange={(e) => setAdjustRolls(e.target.checked)}
+            className="rounded"
+          />
+          Roll-Adjusted
         </label>
         <div className="ml-auto text-sm text-slate-500">
           {data.length.toLocaleString()} data points

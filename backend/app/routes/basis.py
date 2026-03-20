@@ -17,9 +17,11 @@ def get_basis_data(
     crop: str = Query("HRW"),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
+    adjust_rolls: bool = Query(True),
 ):
     basis_df = calculate_basis(
-        location=location, crop=crop, start_date=start_date, end_date=end_date
+        location=location, crop=crop, start_date=start_date, end_date=end_date,
+        adjust_rolls=adjust_rolls,
     )
 
     records = [
@@ -52,21 +54,24 @@ def get_crops():
 def get_summary(
     location: Optional[str] = Query(None),
     crop: str = Query("HRW"),
+    adjust_rolls: bool = Query(True),
 ):
-    return get_basis_summary(location=location, crop=crop)
+    return get_basis_summary(location=location, crop=crop, adjust_rolls=adjust_rolls)
 
 
 @router.get("/seasonal")
 def get_seasonal(
     location: Optional[str] = Query(None),
     crop: str = Query("HRW"),
+    adjust_rolls: bool = Query(True),
 ):
-    return {"data": get_seasonal_basis(location=location, crop=crop)}
+    return {"data": get_seasonal_basis(location=location, crop=crop, adjust_rolls=adjust_rolls)}
 
 
 @router.get("/by-year")
 def get_by_year(
     location: Optional[str] = Query(None),
     crop: str = Query("HRW"),
+    adjust_rolls: bool = Query(True),
 ):
-    return {"data": get_basis_by_year(location=location, crop=crop)}
+    return {"data": get_basis_by_year(location=location, crop=crop, adjust_rolls=adjust_rolls)}

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, BarChart3, TrendingUp, LineChart } from "lucide-react";
+import { LayoutDashboard, BarChart3, TrendingUp, LineChart, Shield } from "lucide-react";
 import type { ReactNode } from "react";
 
 const NAV = [
@@ -7,6 +7,7 @@ const NAV = [
   { to: "/analysis", label: "Basis Analysis", icon: BarChart3 },
   { to: "/forecast", label: "Basis Forecast", icon: TrendingUp },
   { to: "/price-forecast", label: "Price Forecast", icon: LineChart },
+  { to: "/risk", label: "Risk Metrics", icon: Shield },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {

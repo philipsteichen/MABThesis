@@ -10,6 +10,9 @@ def get_basis_forecast(
     location: Optional[str] = Query(None),
     crop: str = Query("HRW"),
     years: int = Query(1, ge=1, le=4),
+    adjust_rolls: bool = Query(True),
 ):
     periods = years * 365
-    return forecast_basis(location=location, crop=crop, periods=periods)
+    return forecast_basis(
+        location=location, crop=crop, periods=periods, adjust_rolls=adjust_rolls
+    )
