@@ -18,6 +18,7 @@ export const api = {
     crop?: string;
     start_date?: string;
     end_date?: string;
+    adjust_rolls?: string;
   }) =>
     fetchJson<{ data: import("../types").BasisDataPoint[]; count: number }>(
       `${BASE}/basis/data`,
@@ -29,19 +30,19 @@ export const api = {
 
   getCrops: () => fetchJson<{ crops: string[] }>(`${BASE}/basis/crops`),
 
-  getSummary: (params?: { location?: string; crop?: string }) =>
+  getSummary: (params?: { location?: string; crop?: string; adjust_rolls?: string }) =>
     fetchJson<import("../types").BasisSummary>(
       `${BASE}/basis/summary`,
       params as Record<string, string>,
     ),
 
-  getSeasonal: (params?: { location?: string; crop?: string }) =>
+  getSeasonal: (params?: { location?: string; crop?: string; adjust_rolls?: string }) =>
     fetchJson<{ data: import("../types").SeasonalBasis[] }>(
       `${BASE}/basis/seasonal`,
       params as Record<string, string>,
     ),
 
-  getBasisByYear: (params?: { location?: string; crop?: string }) =>
+  getBasisByYear: (params?: { location?: string; crop?: string; adjust_rolls?: string }) =>
     fetchJson<{ data: { date: string; year: number; week: number; basis: number; location: string }[] }>(
       `${BASE}/basis/by-year`,
       params as Record<string, string>,
@@ -51,6 +52,7 @@ export const api = {
     location?: string;
     crop?: string;
     years?: string;
+    adjust_rolls?: string;
   }) =>
     fetchJson<import("../types").ForecastResponse>(
       `${BASE}/forecast/basis`,
@@ -84,6 +86,37 @@ export const api = {
     }
     return res.json() as Promise<{ data: { date: string; price: number }[]; count: number; filename: string }>;
   },
+
+  // Risk metrics endpoints
+  getVaR: (params?: { location?: string; crop?: string; window?: string }) =>
+    fetchJson<import("../types").VaRResult>(
+      `${BASE}/risk/var`,
+      params as Record<string, string>,
+    ),
+
+  getVolatility: (params?: { location?: string; crop?: string }) =>
+    fetchJson<{ data: import("../types").VolatilityPoint[] }>(
+      `${BASE}/risk/volatility`,
+      params as Record<string, string>,
+    ),
+
+  getConvergence: (params?: { location?: string; crop?: string }) =>
+    fetchJson<import("../types").ConvergenceResult>(
+      `${BASE}/risk/convergence`,
+      params as Record<string, string>,
+    ),
+
+  getAccuracy: (params?: { location?: string; crop?: string }) =>
+    fetchJson<import("../types").AccuracyResult>(
+      `${BASE}/risk/accuracy`,
+      params as Record<string, string>,
+    ),
+
+  getHedging: (params?: { location?: string; crop?: string }) =>
+    fetchJson<import("../types").HedgingResult>(
+      `${BASE}/risk/hedging`,
+      params as Record<string, string>,
+    ),
 
   forecastPrice: async (params: {
     source?: string;

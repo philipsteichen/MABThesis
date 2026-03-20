@@ -31,6 +31,7 @@ export default function BasisForecast() {
   const [years, setYears] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adjustRolls, setAdjustRolls] = useState(true);
 
   useEffect(() => { trackPageView("/forecast"); }, []);
 
@@ -46,6 +47,7 @@ export default function BasisForecast() {
         location: location || undefined,
         crop: "HRW",
         years: String(years),
+        adjust_rolls: String(adjustRolls),
       })
       .then((res) => {
         setForecastData(res);
@@ -148,6 +150,15 @@ export default function BasisForecast() {
             </span>
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-600 pb-1 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={adjustRolls}
+            onChange={(e) => setAdjustRolls(e.target.checked)}
+            className="rounded"
+          />
+          Roll-Adjusted
+        </label>
         <button
           onClick={runForecast}
           disabled={loading}
@@ -204,7 +215,7 @@ export default function BasisForecast() {
                 />
                 <Tooltip
                   labelFormatter={(v: string) => `Date: ${v}`}
-                  formatter={(v: number | undefined, name: string) => {
+                  formatter={(v: number, name: string) => {
                     if (v === undefined || v === null) return ["-", name];
                     const label =
                       name === "actual"

@@ -31,13 +31,45 @@ def get_nearby_futures() -> pd.DataFrame:
     ].rename(columns={"Last": "futures_price"})
 
 
+def _roll_adjust_futures(nearby: pd.DataFrame) -> pd.DataFrame:
+    """Adjust futures prices to remove discontinuities at contract rolls.
+
+    On each date where the nearby contract changes, compute the price gap
+    between the new and old contracts.  A cumulative adjustment is subtracted
+    from all subsequent futures prices so that the series is continuous.
+    """
+    df = nearby.sort_values("Date").copy()
+    df["prev_contract"] = df["Futures_Contract_Type"].shift(1)
+    df["is_roll_date"] = df["Futures_Contract_Type"] != df["prev_contract"]
+    # First row is never a real roll
+    df.loc[df.index[0], "is_roll_date"] = False
+
+    # On roll dates the gap = new price - old price (previous row's price)
+    df["prev_price"] = df["futures_price"].shift(1)
+    df["roll_gap"] = np.where(
+        df["is_roll_date"],
+        df["futures_price"] - df["prev_price"],
+        0.0,
+    )
+    df["cum_roll_adj"] = df["roll_gap"].cumsum()
+    df["futures_price_adj"] = df["futures_price"] - df["cum_roll_adj"]
+
+    df.drop(columns=["prev_contract", "prev_price", "roll_gap"], inplace=True)
+    return df
+
+
 def calculate_basis(
     location: str | None = None,
     crop: str = "HRW",
     start_date: str | None = None,
     end_date: str | None = None,
+    adjust_rolls: bool = True,
 ) -> pd.DataFrame:
-    """Calculate basis = cash price - nearby futures price."""
+    """Calculate basis = cash price - nearby futures price.
+
+    When *adjust_rolls* is True the futures series is roll-adjusted so that
+    contract switches do not create artificial basis spikes.
+    """
     cash = get_cash_prices()
 
     # Filter by crop
@@ -50,11 +82,17 @@ def calculate_basis(
     # Get nearby futures
     nearby = get_nearby_futures()
 
+    if adjust_rolls:
+        nearby = _roll_adjust_futures(nearby)
+
     # Merge on date
     basis_df = cash.merge(nearby, on="Date", how="inner")
 
     # Calculate basis (both in $/bu after conversion)
-    basis_df["basis"] = basis_df["AdjCashPrice"] - basis_df["futures_price"]
+    if adjust_rolls and "futures_price_adj" in basis_df.columns:
+        basis_df["basis"] = basis_df["AdjCashPrice"] - basis_df["futures_price_adj"]
+    else:
+        basis_df["basis"] = basis_df["AdjCashPrice"] - basis_df["futures_price"]
 
     # Date filters
     if start_date:
@@ -66,9 +104,11 @@ def calculate_basis(
     return basis_df
 
 
-def get_basis_summary(location: str | None = None, crop: str = "HRW") -> dict:
+def get_basis_summary(
+    location: str | None = None, crop: str = "HRW", adjust_rolls: bool = True
+) -> dict:
     """Get summary statistics for basis."""
-    basis_df = calculate_basis(location=location, crop=crop)
+    basis_df = calculate_basis(location=location, crop=crop, adjust_rolls=adjust_rolls)
 
     if basis_df.empty:
         return {
@@ -95,10 +135,10 @@ def get_basis_summary(location: str | None = None, crop: str = "HRW") -> dict:
 
 
 def get_seasonal_basis(
-    location: str | None = None, crop: str = "HRW"
+    location: str | None = None, crop: str = "HRW", adjust_rolls: bool = True
 ) -> list[dict]:
     """Get average basis by month."""
-    basis_df = calculate_basis(location=location, crop=crop)
+    basis_df = calculate_basis(location=location, crop=crop, adjust_rolls=adjust_rolls)
 
     if basis_df.empty:
         return []
@@ -120,10 +160,10 @@ def get_seasonal_basis(
 
 
 def get_basis_by_year(
-    location: str | None = None, crop: str = "HRW"
+    location: str | None = None, crop: str = "HRW", adjust_rolls: bool = True
 ) -> list[dict]:
     """Get basis data grouped by crop year for year-over-year comparison."""
-    basis_df = calculate_basis(location=location, crop=crop)
+    basis_df = calculate_basis(location=location, crop=crop, adjust_rolls=adjust_rolls)
 
     if basis_df.empty:
         return []

@@ -129,16 +129,19 @@ export default function Dashboard() {
   const [basisData, setBasisData] = useState<BasisDataPoint[]>([]);
   const [seasonal, setSeasonal] = useState<SeasonalBasis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adjustRolls, setAdjustRolls] = useState(true);
 
   useEffect(() => { trackPageView("/"); }, []);
 
   useEffect(() => {
+    setLoading(true);
+    const ar = String(adjustRolls);
     Promise.all([
-      api.getSummary({ crop: "HRW" }),
-      api.getSummary({ location: "COLBY", crop: "HRW" }),
-      api.getSummary({ location: "SALINA", crop: "HRW" }),
-      api.getBasisData({ crop: "HRW" }),
-      api.getSeasonal({ crop: "HRW" }),
+      api.getSummary({ crop: "HRW", adjust_rolls: ar }),
+      api.getSummary({ location: "COLBY", crop: "HRW", adjust_rolls: ar }),
+      api.getSummary({ location: "SALINA", crop: "HRW", adjust_rolls: ar }),
+      api.getBasisData({ crop: "HRW", adjust_rolls: ar }),
+      api.getSeasonal({ crop: "HRW", adjust_rolls: ar }),
     ]).then(([sum, colby, salina, data, sea]) => {
       setSummary(sum);
       setColbySummary(colby);
@@ -150,7 +153,7 @@ export default function Dashboard() {
       console.error("Dashboard load error:", err);
       setLoading(false);
     });
-  }, []);
+  }, [adjustRolls]);
 
   if (loading) {
     return (
@@ -162,10 +165,23 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-kstate-purple">Dashboard</h2>
-      <p className="text-slate-500 mt-1">
-        HRW Wheat Basis Spread Overview — Kansas Locations
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-kstate-purple">Dashboard</h2>
+          <p className="text-slate-500 mt-1">
+            HRW Wheat Basis Spread Overview — Kansas Locations
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={adjustRolls}
+            onChange={(e) => setAdjustRolls(e.target.checked)}
+            className="rounded"
+          />
+          Roll-Adjusted
+        </label>
+      </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">

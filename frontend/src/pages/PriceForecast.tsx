@@ -368,7 +368,7 @@ export default function PriceForecast() {
                 />
                 <Tooltip
                   labelFormatter={(v: string) => `Date: ${v}`}
-                  formatter={(v: number | undefined, name: string) => {
+                  formatter={(v: number, name: string) => {
                     if (v === undefined || v === null) return ["-", name];
                     const label =
                       name === "actual"

@@ -7,9 +7,10 @@ def forecast_basis(
     location: str | None = None,
     crop: str = "HRW",
     periods: int = 365,
+    adjust_rolls: bool = True,
 ) -> dict:
     """Forecast basis using Prophet."""
-    basis_df = calculate_basis(location=location, crop=crop)
+    basis_df = calculate_basis(location=location, crop=crop, adjust_rolls=adjust_rolls)
 
     if basis_df.empty:
         return {"historical": [], "forecast": [], "full_forecast": []}
